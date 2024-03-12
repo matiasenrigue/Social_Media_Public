@@ -19,9 +19,6 @@ from Logic.Tools import params
 from pyunsplash import PyUnsplash
 import pixabay.core
 
-# Ordenar carpetas
-from Logic.Tools.Shuffle_pics import ordenar_por_aspecto
-
 
 
 """
@@ -50,11 +47,11 @@ def Videos_Pexels_download_manager(query, carpeta_raw_data, k, formato):
     except Exception as e:
         print(f"Error al descargar {e}")
 
-    try:
-        thread_Unsplash = threading.Thread(target=download_from_Unsplash, args=(query, carpeta_descargas_bonus, k, formato))
-        thread_Unsplash.start()
-    except Exception as e:
-        print(f"Error al descargar {e}")
+    # try:
+    #     thread_Unsplash = threading.Thread(target=download_from_Unsplash, args=(query, carpeta_descargas_bonus, k, formato))
+    #     thread_Unsplash.start()
+    # except Exception as e:
+    #     print(f"Error al descargar {e}")
 
     try:
         thread_Pixaby = threading.Thread(target=download_from_Pixaby, args=(query, carpeta_descargas_bonus, k, formato))
@@ -67,18 +64,15 @@ def Videos_Pexels_download_manager(query, carpeta_raw_data, k, formato):
     except Exception as e:
         print(f"Error al descargar {e}")
 
-    try:
-        thread_Unsplash.join()
-    except Exception as e:
-        print(f"Error al descargar {e}")
+    # try:
+    #     thread_Unsplash.join()
+    # except Exception as e:
+    #     print(f"Error al descargar {e}")
 
     try:
         thread_Pixaby.join()
     except Exception as e:
         print(f"Error al descargar {e}")
-
-    ordenar_por_aspecto(carpeta_descargas_bonus)
-
 
 
 
@@ -119,35 +113,35 @@ def download_from_Pexels(query, carpeta_descargas, k, formato):
     api_key = params.Pexels_key
     headers = {"Authorization": api_key} # Headers para que funciona requets (usamos API key)
     segundos_linux = datetime.now().strftime("%s")  # segundero para evitar sobre escribir carpeta
-    
-    dict_orientacion = {
-        "Vertical" : "portrait",
-        "Horizontal" : "landscape"
-    }
-    orientacion = dict_orientacion[formato]  # definir horientación según lo elegido del usuario
 
     for j in range(k):
-        url = f"https://api.pexels.com/v1/search?query={query}&page={j+1}&per_page={num_results}"
+        url = f"https://api.pexels.com/videos/search?query={query}&page={j+1}&per_page={num_results}"
         r = requests.get(url, headers=headers)
         response = r.json()
-        lista_fotos = response["photos"]
+        lista_videos = response["videos"]
+    
+        hd_videos = []
+        for video in lista_videos:
+            for file in video["video_files"]:
+                if file["quality"] == "hd":
+                    hd_videos.append(file["link"])
+                    break  # Añade el video una vez y continúa con el siguiente video
 
         i = 1
-        for foto in lista_fotos:
-
-            source = foto["src"]
-            link_vertical = source[orientacion]
-
-            nombre_archivo = f"Photo_{query}_aPexels_{j}_{i}_{segundos_linux}.jpg"
+        for url_video in hd_videos:
+            
+            nombre_archivo = f"Video_{query}_aPexels_{j}_{i}_{segundos_linux}.mp4"
             ruta_completa = os.path.join(carpeta_descargas, nombre_archivo)
 
-            para = descargar_imagen(link_vertical, ruta_completa)
+            para = descargar_video(url_video, ruta_completa)
             if para:
                 break
             i += 1
             time.sleep(3)
 
     sys.exit("Pexels acabó")
+
+
 
 
 
@@ -160,15 +154,9 @@ def download_from_Unsplash(query, carpeta_descargas, k, formato):
     pu = PyUnsplash(api_key=params.Unsplash_key)  # instantiate PyUnsplash object
     segundos_linux = datetime.now().strftime("%s")  # segundero para evitar sobre escribir carpeta
 
-    dict_orientacion = {
-        "Vertical" : "portrait",
-        "Horizontal" : "landscape"
-    }
-    orientacion = dict_orientacion[formato]  # definir horientación según lo elegido del usuario
-
     for j in range(k + 1):
 
-        photos = pu.photos(type_='random', count=30, featured=True, query=query, orientation = orientacion)
+        photos = pu.photos(type_='random', count=30, featured=True, query=query)
         list_photos = photos.body
 
         i = 1
@@ -176,10 +164,10 @@ def download_from_Unsplash(query, carpeta_descargas, k, formato):
 
             urls = photo["urls"]
             high_quality_link = urls["full"]
-            nombre_archivo = f"Photo_{query}_Unsplash_{j}_{i}_{segundos_linux}.jpg"
+            nombre_archivo = f"Photo_{query}_Unsplash_{j}_{i}_{segundos_linux}.mp4"
             ruta_completa = os.path.join(carpeta_descargas, nombre_archivo)
 
-            para = descargar_imagen(high_quality_link, ruta_completa)
+            para = descargar_video(high_quality_link, ruta_completa)
             if para:
                 break
             i += 1
@@ -196,31 +184,21 @@ def download_from_Pixaby(query, carpeta_descargas, k, formato):
     """
     px = pixabay.core(params.Pixaby_key)
     segundos_linux = datetime.now().strftime("%s")
+
+    videos = px.queryVideo(query = query)
+    num_of_vids = (k + 1) * 30
     
-    dict_orientacion = {
-        "Vertical" : "vertical",
-        "Horizontal" : "horizontal"
-    }
-    orientacion = dict_orientacion[formato]  # definir horientación según lo elegido del usuario
-
-    pictures = px.query(
-        query = query,
-        orientation = orientacion,
-        category = ["animals", "nature"]
-        )
-
-    num_of_pics = (k + 1) * 30
     i = 1
-    for picture in pictures:
+    for video in videos:
         
-        if i >= num_of_pics:
+        if i >= num_of_vids:
             break
 
-        nombre_archivo = f"Photo_{query}_Pixaby_{i}_{segundos_linux}.jpg"
+        nombre_archivo = f"Video_{query}_Pixaby_{i}_{segundos_linux}.mp4"
         ruta_completa = os.path.join(carpeta_descargas, nombre_archivo)
         
         try:
-            picture.download(ruta_completa, "largeImage")  # picture[0].download("space.jpg", "largeImage")
+            video.download(ruta_completa, "large")  # video[0].download("space.mp4", "largeImage")
         except Exception as e:
             print(e)
 

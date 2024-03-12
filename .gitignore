@@ -1,6 +1,7 @@
 .env
 .envrc
 
-raw_data
+raw_data_Videos
+raw_data_Photos
 
 
