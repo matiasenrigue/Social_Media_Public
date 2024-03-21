@@ -15,7 +15,6 @@ formato_elegido = diccionario_de_formatos[1]  # cambiar el numero según el form
 downloads_dictionnary = {
     # "Money": 2,
     # "Computer": 1,
-    "Programming": 1,
-    "Hacker": 1,
-    "Learn" : 1
+    "work": 1,
+    "relax": 1
     }
