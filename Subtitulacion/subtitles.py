@@ -34,18 +34,22 @@ def get_subtitles(audio_path, archivo_subs):
     model = whisper_timestamped.load_model("base")
     results = whisper_timestamped.transcribe(model, audio_path)
 
-    with open(f'{archivo_subs}.srt', 'w', encoding='utf-8') as f:
-        contador = 1
-        for palabra in results:
-            inicio = tiempo_a_formato_srt(palabra["start"])
-            fin = tiempo_a_formato_srt(palabra["end"])
-            texto = palabra["text"]
-            
-            f.write(f'{contador}\n')
-            f.write(f'{inicio} --> {fin}\n')
-            f.write(f'{texto}\n\n')
-            
-            contador += 1
+    def aplanar_transcripcion_y_generar_srt(results, archivo_srt):
+        with open(archivo_srt, 'w', encoding='utf-8') as f:
+            contador = 1
+            for segment in results["segments"]:
+                for palabra in segment["words"]:
+                    inicio = tiempo_a_formato_srt(palabra["start"])
+                    fin = tiempo_a_formato_srt(palabra["end"])
+                    texto = palabra["text"]
+
+                    f.write(f'{contador}\n')
+                    f.write(f'{inicio} --> {fin}\n')
+                    f.write(f'{texto}\n\n')
+                    
+                    contador += 1
+
+    aplanar_transcripcion_y_generar_srt(results, archivo_subs)
 
     print("\n📄 Subtítulos creados")
 
@@ -57,12 +61,12 @@ def audios_subtitulation():
     """
     
     folder = os.path.join(os.getcwd(),"audios_to_sub")
-    
     audio_files = glob.glob(os.path.join(folder, '*.mp3'))
     
     if audio_files:
         for audio_path in audio_files:
-            archivo_subs = os.path.splitext(os.path.basename(audio_path))[0]
+            archivo_subs_cola = os.path.splitext(os.path.basename(audio_path))[0]
+            archivo_subs = os.path.join(folder, f"{archivo_subs_cola}.srt")
             get_subtitles(audio_path, archivo_subs)
     
     else:
